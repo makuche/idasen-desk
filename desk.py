@@ -17,7 +17,9 @@ CMD_DOWN = 70
 CMD_STOP = 255
 CMD_WAKEUP = 254
 
-CONFIG_PATH = Path.cwd() / ".idasen-config.json"
+CONFIG_DIR = Path.home() / ".config" / "idasen"
+CONFIG_PATH = CONFIG_DIR / "config.json"
+DEFAULT_PRESETS = {"sit": 700, "stand": 1000}
 
 
 class IdasenDesk:
@@ -80,27 +82,31 @@ def load_config():
     if CONFIG_PATH.exists():
         with open(CONFIG_PATH) as f:
             config = json.load(f)
-            config.setdefault("presets", {})
+            config.setdefault("presets", DEFAULT_PRESETS.copy())
             return config
-    return {"presets": {}}
+    return {"presets": DEFAULT_PRESETS.copy()}
 
 
 def save_config(data):
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, "w") as f:
         json.dump(data, f, indent=2)
 
 
 async def scan_for_desk():
-    print("Scanning...")
+    print("Scanning for desk...")
     devices = await BleakScanner.discover(timeout=10.0)
 
     for device in devices:
         if device.name and "desk" in device.name.lower():
             print(f"Found: {device.name} ({device.address})")
-            config = load_config()
-            config["mac_address"] = device.address
+            config = {
+                "mac_address": device.address,
+                "presets": DEFAULT_PRESETS.copy()
+            }
             save_config(config)
-            print(f"Saved to {CONFIG_PATH}")
+            print(f"Saved config to {CONFIG_PATH}")
+            print(f"Presets: sit={config['presets']['sit']}mm, stand={config['presets']['stand']}mm")
             return device.address
 
     print("No desk found. Check power and Bluetooth.")
@@ -112,7 +118,12 @@ async def connect_to_desk():
     mac = config.get("mac_address")
 
     if not mac:
-        print("No desk configured. Run: idasen.py scan")
+        print("No desk configured. Run first-time setup:")
+        print()
+        print("  nix run ~/git/ikea-desk -- scan")
+        print()
+        print(f"This will scan for your desk and create {CONFIG_PATH}")
+        print(f"with presets: sit={DEFAULT_PRESETS['sit']}mm, stand={DEFAULT_PRESETS['stand']}mm")
         sys.exit(1)
 
     try:

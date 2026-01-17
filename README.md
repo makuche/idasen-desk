@@ -15,39 +15,52 @@ Instead of timing-based movement, we send the target height to the reference inp
 ## Installation
 
 **Requirements:**
-- Python 3.7+
+- Nix package manager ([install](https://nixos.org/download))
 - Bluetooth adapter
 
-**Install:**
+**With Nix (recommended):**
+
+No installation needed! Just run:
 ```bash
-pip install bleak
+nix run github:yourusername/ikea-desk -- height
 ```
 
-Or with a virtual environment:
+Or clone and use locally:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+git clone <repo>
+cd ikea-desk
+nix run . -- height
+```
+
+**Without Nix:**
+```bash
 pip install bleak
+python desk.py height
 ```
 
 ## Setup
 
 **1. Find your desk:**
 ```bash
-python idasen.py scan
+nix run . -- scan
 ```
 
-This discovers your desk and saves its address to `.idasen-config.json` in the current directory.
+Or if installed:
+```bash
+desk scan
+```
+
+This discovers your desk and saves its address to `~/.config/idasen/config.json` with default presets (sit=700mm, stand=1000mm).
 
 **2. Configure presets (optional):**
 
-Edit `.idasen-config.json`:
+Edit `~/.config/idasen/config.json`:
 ```json
 {
   "mac_address": "XX:XX:XX:XX:XX:XX",
   "presets": {
     "sit": 700,
-    "stand": 1100
+    "stand": 1000
   }
 }
 ```
@@ -58,11 +71,19 @@ Heights are in millimeters. Typical ranges:
 
 ## Usage
 
+With Nix:
 ```bash
-python idasen.py height           # Show current height
-python idasen.py move sit         # Move to preset
-python idasen.py move stand       # Move to preset
-python idasen.py move 850         # Move to specific height (mm)
+nix run . -- height              # Show current height
+nix run . -- move sit            # Move to preset
+nix run . -- move stand          # Move to preset
+nix run . -- move 850            # Move to specific height (mm)
+```
+
+Or install once:
+```bash
+nix profile install .
+desk height
+desk move sit
 ```
 
 ## Troubleshooting
@@ -101,6 +122,27 @@ Based on the Linak BLE protocol used by Idasen desks:
 - Target position written to reference input characteristic
 - Written repeatedly (every 0.2s) until desk reaches target
 - Desk's controller handles acceleration, deceleration, and stopping
+
+## Quick Access with Nix
+
+For convenient daily use, add these aliases to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+alias stand="nix run ~/git/ikea-desk#stand"
+alias sit="nix run ~/git/ikea-desk#sit"
+alias desk="nix run ~/git/ikea-desk#desk --"
+```
+
+Adjust the path (`~/git/ikea-desk`) to match where you cloned the repository.
+
+After sourcing your shell config, simply run:
+```bash
+stand    # Move desk to standing position
+sit      # Move desk to sitting position
+desk height   # Check current height
+```
+
+The Nix flake handles all Python dependencies automatically - no manual installation required.
 
 ## Credits
 
